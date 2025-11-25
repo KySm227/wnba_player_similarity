@@ -1,339 +1,534 @@
-import { useMemo, useState } from "react";
-import PropTypes from "prop-types";
+/* global globalThis */
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-const SECTION_METADATA = {
-  perGame: {
+// API URL - matches server port
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5002/api";
+
+const SECTION_CONFIG = [
+  {
+    id: "per_game",
     title: "Per Game",
-    description: "Box-score staples for the chosen season snapshot.",
+    description: "Traditional counting stats averaged per game.",
+    keys: ["per_game"],
   },
-  advanced: {
-    title: "Advanced",
-    description: "Impact metrics, usage, and efficiency indicators.",
-  },
-  per100: {
+  {
+    id: "per_100",
     title: "Per 100 Possessions",
-    description: "Scaled output for pace-agnostic comparisons.",
+    description: "Scaled totals for pace-neutral comparisons.",
+    keys: ["per_100_possessions", "per_100", "per100"],
   },
-  shooting: {
+  {
+    id: "advanced",
+    title: "Advanced",
+    description: "Efficiency, usage, and on/off impact metrics.",
+    keys: ["advanced"],
+  },
+  {
+    id: "shooting",
     title: "Shooting",
-    description: "Shot profile and conversion splits.",
-  },
-  playByPlay: {
-    title: "Play-by-Play",
-    description: "On/off data and lineup versatility.",
-  },
-};
-
-const SECTION_ORDER = [
-  "perGame",
-  "advanced",
-  "per100",
-  "shooting",
-  "playByPlay",
-];
-
-const baseSimilarPlayers = [
-  {
-    name: "Breanna Stewart",
-    score: 94,
-    season: "2023 Liberty",
-    description:
-      "Versatile two-way star with matching usage and defensive range.",
+    description: "Breakdown by zone and shot value.",
+    keys: ["shooting"],
   },
   {
-    name: "Napheesa Collier",
-    score: 90,
-    season: "2024 Lynx",
-    description:
-      "Face-up forward who blends on-ball creation with elite help defense.",
-  },
-  {
-    name: "Lauren Jackson",
-    score: 87,
-    season: "2007 Storm",
-    description:
-      "Peak MVP stretch with similar rim pressure and spacing gravity.",
+    id: "pbp",
+    title: "Play By Play",
+    description: "Lineup role, positional splits, and on/off data.",
+    keys: ["pbp", "play_by_play"],
   },
 ];
 
-const samplePlayer = {
-  id: "aja-wilson",
-  name: "A'ja Wilson",
-  team: "Las Vegas Aces",
-  number: 22,
-  position: "F/C",
-  height: "6'4\"",
-  weight: "195 lbs",
-  college: "South Carolina",
-  yearsPro: "7th season",
-  hometown: "Hopkins, SC",
-  bio: "Dominant two-way anchor powering the Aces with interior scoring, rim protection, and emerging perimeter range.",
-  imageUrl: "https://cdn.nba.com/headshots/wnba/latest/1040x760/1628883.png",
-  badges: ["2x MVP", "2x Champion", "5x All-Star"],
-  ageProfiles: [
-    {
-      age: 27,
-      season: "2024",
-      tagline: "Third MVP pace with improved spacing and switch defense.",
-      stats: {
-        perGame: [
-          { label: "PTS", value: "24.3" },
-          { label: "REB", value: "9.8" },
-          { label: "AST", value: "2.6" },
-          { label: "STL", value: "1.5" },
-          { label: "BLK", value: "2.2" },
-          { label: "TS%", value: "63.1" },
-        ],
-        advanced: [
-          { label: "PER", value: "30.8" },
-          { label: "USG%", value: "32.6" },
-          { label: "WS/48", value: ".322" },
-          { label: "BPM", value: "9.4" },
-          { label: "DWS", value: "3.1" },
-          { label: "Off RTG", value: "121" },
-        ],
-        per100: [
-          { label: "PTS", value: "36.8" },
-          { label: "REB", value: "14.9" },
-          { label: "AST", value: "3.9" },
-          { label: "FTM", value: "10.2" },
-          { label: "Blocks", value: "3.4" },
-          { label: "FGA", value: "24.6" },
-        ],
-        shooting: [
-          { label: "At Rim", value: "69%" },
-          { label: "Midrange", value: "47%" },
-          { label: "Corner 3", value: "41%" },
-          { label: "3PA", value: "1.4" },
-          { label: "FTA", value: "7.9" },
-          { label: "eFG%", value: "58%" },
-        ],
-        playByPlay: [
-          { label: "Net On/Off", value: "+14.6" },
-          { label: "Lineup Usage", value: "78%" },
-          { label: "Small-Ball 5", value: "62%" },
-          { label: "Post Touches", value: "11.4" },
-          { label: "Touches/Game", value: "61" },
-          { label: "Deflections", value: "3.1" },
-        ],
-      },
-      similarPlayers: baseSimilarPlayers,
-    },
-    {
-      age: 26,
-      season: "2023",
-      tagline: "Back-to-back title run fueled by interior dominance.",
-      stats: {
-        perGame: [
-          { label: "PTS", value: "21.8" },
-          { label: "REB", value: "9.5" },
-          { label: "AST", value: "2.2" },
-          { label: "STL", value: "1.4" },
-          { label: "BLK", value: "1.9" },
-          { label: "TS%", value: "60.4" },
-        ],
-        advanced: [
-          { label: "PER", value: "28.6" },
-          { label: "USG%", value: "30.1" },
-          { label: "WS/48", value: ".298" },
-          { label: "BPM", value: "8.7" },
-          { label: "DWS", value: "2.9" },
-          { label: "Off RTG", value: "118" },
-        ],
-        per100: [
-          { label: "PTS", value: "34.1" },
-          { label: "REB", value: "15.1" },
-          { label: "AST", value: "3.6" },
-          { label: "FTM", value: "8.8" },
-          { label: "Blocks", value: "3.1" },
-          { label: "FGA", value: "22.8" },
-        ],
-        shooting: [
-          { label: "At Rim", value: "67%" },
-          { label: "Midrange", value: "45%" },
-          { label: "Corner 3", value: "33%" },
-          { label: "3PA", value: "0.7" },
-          { label: "FTA", value: "7.0" },
-          { label: "eFG%", value: "56%" },
-        ],
-        playByPlay: [
-          { label: "Net On/Off", value: "+12.8" },
-          { label: "Lineup Usage", value: "74%" },
-          { label: "Small-Ball 5", value: "55%" },
-          { label: "Post Touches", value: "10.6" },
-          { label: "Touches/Game", value: "57" },
-          { label: "Deflections", value: "2.8" },
-        ],
-      },
-      similarPlayers: [
-        baseSimilarPlayers[0],
-        baseSimilarPlayers[2],
-        {
-          name: "Candace Parker",
-          score: 85,
-          season: "2013 Sparks",
-          description: "Point-forward skillset with interior rim deterrence.",
-        },
-      ],
-    },
-    {
-      age: 24,
-      season: "2021",
-      tagline: "Early-prime leap with higher usage and rim attempts.",
-      stats: {
-        perGame: [
-          { label: "PTS", value: "19.0" },
-          { label: "REB", value: "8.3" },
-          { label: "AST", value: "2.5" },
-          { label: "STL", value: "1.3" },
-          { label: "BLK", value: "1.8" },
-          { label: "TS%", value: "59.2" },
-        ],
-        advanced: [
-          { label: "PER", value: "26.9" },
-          { label: "USG%", value: "28.4" },
-          { label: "WS/48", value: ".260" },
-          { label: "BPM", value: "7.5" },
-          { label: "DWS", value: "2.4" },
-          { label: "Off RTG", value: "114" },
-        ],
-        per100: [
-          { label: "PTS", value: "31.6" },
-          { label: "REB", value: "13.2" },
-          { label: "AST", value: "4.0" },
-          { label: "FTM", value: "8.0" },
-          { label: "Blocks", value: "2.8" },
-          { label: "FGA", value: "20.2" },
-        ],
-        shooting: [
-          { label: "At Rim", value: "66%" },
-          { label: "Midrange", value: "42%" },
-          { label: "Corner 3", value: "29%" },
-          { label: "3PA", value: "0.3" },
-          { label: "FTA", value: "6.6" },
-          { label: "eFG%", value: "55%" },
-        ],
-        playByPlay: [
-          { label: "Net On/Off", value: "+10.3" },
-          { label: "Lineup Usage", value: "70%" },
-          { label: "Small-Ball 5", value: "41%" },
-          { label: "Post Touches", value: "9.8" },
-          { label: "Touches/Game", value: "52" },
-          { label: "Deflections", value: "2.2" },
-        ],
-      },
-      similarPlayers: [
-        {
-          name: "Elena Delle Donne",
-          score: 88,
-          season: "2015 Sky",
-          description: "Pick-and-pop star with elite touch and foul magnetism.",
-        },
-        {
-          name: "Lauren Jackson",
-          score: 85,
-          season: "2004 Storm",
-          description: "Stretch-five toolkit with rim deterrence and footwork.",
-        },
-        {
-          name: "Sylvia Fowles",
-          score: 83,
-          season: "2012 Sky",
-          description: "Paint dominant finisher with glass-cleaning prowess.",
-        },
-      ],
-    },
-  ],
+const formatLabel = (label) => {
+  if (!label) return "";
+  return label
+    .replaceAll("_", " ")
+    .split(" ")
+    .map((word) =>
+      word ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase() : ""
+    )
+    .join(" ");
 };
 
-const roster = [samplePlayer];
-
-function StatGroup({ title, description, rows }) {
-  return (
-    <article className="stat-group panel">
-      <header>
-        <h3>{title}</h3>
-        <p>{description}</p>
-      </header>
-      <dl>
-        {rows.map((row) => (
-          <div key={row.label} className="stat-row">
-            <dt>{row.label}</dt>
-            <dd>{row.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </article>
-  );
-}
-
-StatGroup.propTypes = {
-  title: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
-  rows: PropTypes.arrayOf(
-    PropTypes.shape({
-      label: PropTypes.string.isRequired,
-      value: PropTypes.string.isRequired,
-    })
-  ).isRequired,
+const formatValue = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "—";
+  }
+  const numberValue = Number(value);
+  if (!Number.isNaN(numberValue) && value !== true && value !== false) {
+    if (Number.isInteger(numberValue)) {
+      return numberValue.toString();
+    }
+    return numberValue.toFixed(2);
+  }
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+  return String(value);
 };
 
-function SimilarPlayerCard({ name, score, season, description }) {
-  return (
-    <article className="similar-card">
-      <div className="similar-card__score">{score}% match</div>
-      <div>
-        <h4>{name}</h4>
-        <p className="similar-card__season">{season}</p>
-        <p className="similar-card__description">{description}</p>
-      </div>
-    </article>
-  );
-}
+const TEAM_NAME_MAP = {
+  LAS: "Los Angeles Sparks",
+  SAC: "Sacramento Monarchs",
+  DET: "Detroit Shock",
+  MIN: "Minnesota Lynx",
+  ATL: "Atlanta Dream",
+  DAL: "Dallas Wings",
+  CHI: "Chicago Sky",
+  CON: "Connecticut Sun",
+  GSV: "Golden State Valkyries",
+  IND: "Indiana Fever",
+  SEA: "Seattle Storm",
+  NYL: "New York Liberty",
+  PHO: "Phoenix Mercury",
+  LVA: "Las Vegas Aces",
+  WAS: "Washington Mystics",
+  CHA: "Charlotte Sting",
+  SAS: "San Antonio Stars",
+  CLE: "Cleveland Rockers",
+  HOU: "Houston Comets",
+  MIA: "Miami Sol",
+  ORL: "Orlando Miracle",
+  POR: "Portland Fire",
+  TUL: "Tulsa Shock",
+  UTA: "Utah Starzz",
+};
 
-SimilarPlayerCard.propTypes = {
-  name: PropTypes.string.isRequired,
-  score: PropTypes.number.isRequired,
-  season: PropTypes.string.isRequired,
-  description: PropTypes.string.isRequired,
+const formatTeamName = (value) => {
+  if (!value || typeof value !== "string") {
+    return "";
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+  const upper = trimmed.toUpperCase();
+  return TEAM_NAME_MAP[upper] || trimmed;
+};
+
+const normalizeAgeDisplay = (value) => {
+  if (value === null || value === undefined) {
+    return "";
+  }
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) {
+    return String(value);
+  }
+  return String(numeric);
+};
+
+const resolveTeamNames = (data) => {
+  if (!data || typeof data !== "object") {
+    return { full: "", short: "" };
+  }
+
+  const fullName =
+    data.team ||
+    data.Team ||
+    data.per_game?.Team ||
+    data.per_game?.team ||
+    data.advanced?.Team ||
+    data.advanced?.team ||
+    "";
+
+  const shortName =
+    data.Tm ||
+    data.tm ||
+    data.per_game?.Tm ||
+    data.per_game?.tm ||
+    data.advanced?.Tm ||
+    data.advanced?.tm ||
+    "";
+
+  return {
+    full: fullName || shortName || "",
+    short: shortName || fullName || "",
+  };
+};
+
+const getInitialTheme = () => {
+  if (typeof globalThis === "undefined") {
+    return "light";
+  }
+  const browserWindow = globalThis.window;
+  if (browserWindow) {
+    const storedTheme = browserWindow.localStorage?.getItem("theme");
+    if (storedTheme === "light" || storedTheme === "dark") {
+      return storedTheme;
+    }
+    if (browserWindow.matchMedia?.("(prefers-color-scheme: light)")?.matches) {
+      return "light";
+    }
+  }
+  return "light";
+};
+
+const IGNORED_AGE_KEYS = new Set([
+  "name",
+  "id",
+  "_id",
+  "stats",
+  "team",
+  "position",
+  "height",
+  "weight",
+  "college",
+  "bio",
+  "number",
+  "imageUrl",
+  "similarPlayers",
+  "ageProfiles",
+  "createdAt",
+  "updatedAt",
+  "__v",
+]);
+
+const buildAgeEntries = (player) => {
+  if (!player || typeof player !== "object") {
+    return [];
+  }
+
+  const entries = [];
+
+  const pushEntry = (key, source, data) => {
+    if (!data || typeof data !== "object") {
+      return;
+    }
+    const teamNames = resolveTeamNames(data);
+    entries.push({
+      originalKey: key,
+      displayAge: normalizeAgeDisplay(key),
+      team: teamNames.full,
+      shortTeam: teamNames.short,
+      source,
+      data,
+      uniqueKey: `${source}-${key}`,
+    });
+  };
+
+  for (const key of Object.keys(player)) {
+    if (IGNORED_AGE_KEYS.has(key)) {
+      continue;
+    }
+    const data = player[key];
+    pushEntry(key, "root", data);
+  }
+
+  if (player.stats && typeof player.stats === "object") {
+    for (const key of Object.keys(player.stats)) {
+      const data = player.stats[key];
+      pushEntry(key, "stats", data);
+    }
+  }
+
+  return entries.sort((a, b) => {
+    const aNum = Number(a.originalKey);
+    const bNum = Number(b.originalKey);
+    if (Number.isNaN(aNum) || Number.isNaN(bNum)) {
+      return String(a.originalKey).localeCompare(String(b.originalKey));
+    }
+    return aNum - bNum;
+  });
 };
 
 function App() {
+  const [players, setPlayers] = useState([]);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [selectedAge, setSelectedAge] = useState(null);
   const [query, setQuery] = useState("");
-  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
-  const [selectedAgeByPlayer, setSelectedAgeByPlayer] = useState({});
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [similarPlayers, setSimilarPlayers] = useState([]);
+  const [loadingSimilar, setLoadingSimilar] = useState(false);
+  const [playerImageMap, setPlayerImageMap] = useState({});
+  const [theme, setTheme] = useState(getInitialTheme);
+  const searchInputRef = useRef(null);
   const year = new Date().getFullYear();
+
+  // Fetch player image mapping
+  useEffect(() => {
+    const fetchImageMapping = async () => {
+      try {
+        const response = await fetch(`${API_URL}/players/images/mapping`);
+        if (response.ok) {
+          const mapping = await response.json();
+          setPlayerImageMap(mapping);
+        }
+      } catch (err) {
+        console.error("Error fetching image mapping:", err);
+      }
+    };
+    fetchImageMapping();
+  }, []);
+
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch(`${API_URL}/players`);
+
+        // Check if response is actually JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType?.includes("application/json")) {
+          const text = await response.text();
+          throw new Error(
+            `Server returned HTML instead of JSON. Make sure the backend server is running on port 5001. Response: ${text.substring(
+              0,
+              100
+            )}`
+          );
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch players: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setPlayers(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching players:", err);
+        // Provide more helpful error message
+        if (err.message === "Failed to fetch" || err.name === "TypeError") {
+          setError(
+            "Cannot connect to server. Make sure the backend server is running on port 5002. Run: npm run server"
+          );
+        } else {
+          setError(err.message);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlayers();
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dataset.theme = theme;
+    }
+    if (typeof globalThis === "undefined") {
+      return;
+    }
+    const browserWindow = globalThis.window;
+    browserWindow?.localStorage?.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  // Helper function to get player image path
+  const getPlayerImagePath = (playerName) => {
+    if (!playerName || !playerImageMap[playerName]) {
+      return null;
+    }
+    return `${API_URL}/images/${playerImageMap[playerName]}`;
+  };
 
   const filteredPlayers = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
-      return roster;
+      return players;
     }
-    return roster.filter((player) =>
-      player.name.toLowerCase().includes(normalized)
-    );
-  }, [query]);
+    return players.filter((player) => {
+      const name = (player.name || "").toLowerCase();
+      return name.includes(normalized);
+    });
+  }, [players, query]);
 
-  const selectedPlayer =
-    roster.find((player) => player.id === selectedPlayerId) ?? null;
-  const activeAge =
-    selectedPlayer?.ageProfiles?.length &&
-    (selectedAgeByPlayer[selectedPlayer.id] ??
-      selectedPlayer.ageProfiles[0].age);
-  const activeProfile =
-    selectedPlayer?.ageProfiles?.find((profile) => profile.age === activeAge) ??
-    selectedPlayer?.ageProfiles?.[0] ??
-    null;
+  const handleSelect = (playerId) => {
+    if (!playerId) {
+      setSelectedPlayer(null);
+      setSelectedAge(null);
+      setQuery("");
+      setIsDropdownOpen(false);
+      return;
+    }
+    const player = players.find((candidate) => candidate._id === playerId);
+    setSelectedPlayer(player ?? null);
+    setQuery(player?.name ?? "");
+    setIsDropdownOpen(false);
+
+    // Set default age to first available age (normalized for display)
+    if (player) {
+      const playerAges = buildAgeEntries(player);
+      setSelectedAge(playerAges[0]?.displayAge || null);
+    }
+    if (searchInputRef.current) {
+      searchInputRef.current.blur();
+    }
+  };
+
+  // Get available ages for selected player combining root-level and stats object entries
+  const availableAges = useMemo(
+    () => buildAgeEntries(selectedPlayer),
+    [selectedPlayer]
+  );
+
+  // Team references for selected player (handles team/Tm fields)
+  const playerTeamNames = useMemo(
+    () => resolveTeamNames(selectedPlayer),
+    [selectedPlayer]
+  );
+
+  // Get stats for selected age - need to find original key
+  const selectedAgeStats = useMemo(() => {
+    if (!selectedPlayer || !selectedAge) {
+      return null;
+    }
+    // Find the original key that matches the selected age (normalized)
+    const ageEntry =
+      availableAges.find((age) => age.displayAge === selectedAge) || null;
+    if (ageEntry) {
+      return ageEntry.data || null;
+    }
+    return null;
+  }, [selectedAge, availableAges, selectedPlayer]);
+
+  const statSections = useMemo(() => {
+    if (!selectedAgeStats || typeof selectedAgeStats !== "object") {
+      return [];
+    }
+
+    return SECTION_CONFIG.map((section) => {
+      const data =
+        section.keys
+          .map((key) => selectedAgeStats[key])
+          .find((value) => value && typeof value === "object") || null;
+
+      if (!data) {
+        return null;
+      }
+
+      const rows = Object.entries(data)
+        .filter(([statKey, value]) => {
+          const normalizedKey = String(statKey).toLowerCase();
+          const shouldSkip =
+            normalizedKey === "year" ||
+            normalizedKey === "team" ||
+            normalizedKey === "tm" ||
+            normalizedKey === "age";
+          return (
+            !shouldSkip && value !== null && value !== undefined && value !== ""
+          );
+        })
+        .map(([statKey, value]) => ({
+          label: formatLabel(statKey),
+          value: formatValue(value),
+        }));
+
+      if (rows.length === 0) {
+        return null;
+      }
+
+      return {
+        id: section.id,
+        title: section.title,
+        description: section.description,
+        rows,
+      };
+    }).filter(Boolean);
+  }, [selectedAgeStats]);
+
+  const activeAgeEntry = useMemo(() => {
+    if (!selectedAge) {
+      return null;
+    }
+    return availableAges.find((age) => age.displayAge === selectedAge) || null;
+  }, [availableAges, selectedAge]);
+
+  const readableSelectedAge = useMemo(() => {
+    if (!selectedAge) {
+      return "";
+    }
+    const numeric = Number(selectedAge);
+    return Number.isNaN(numeric) ? selectedAge : numeric;
+  }, [selectedAge]);
+
+  const seasonTeamNames = useMemo(
+    () => resolveTeamNames(selectedAgeStats),
+    [selectedAgeStats]
+  );
+
+  const currentTeam =
+    activeAgeEntry?.team ||
+    seasonTeamNames.full ||
+    playerTeamNames.full ||
+    activeAgeEntry?.shortTeam ||
+    seasonTeamNames.short ||
+    playerTeamNames.short ||
+    "";
+
+  const playerHeaderTeam = formatTeamName(
+    playerTeamNames.full || playerTeamNames.short || ""
+  );
+  const badgeTeamName = formatTeamName(currentTeam);
+
+  // Fetch similar players when player and age are selected
+  useEffect(() => {
+    const fetchSimilarPlayers = async () => {
+      if (!selectedPlayer || !selectedAge) {
+        setSimilarPlayers([]);
+        return;
+      }
+
+      try {
+        setLoadingSimilar(true);
+        const ageKey = activeAgeEntry?.originalKey || selectedAge;
+        const url = `${API_URL}/players/${selectedPlayer._id}/similar${
+          ageKey ? `?age=${ageKey}` : ""
+        }`;
+
+        console.log("Fetching similar players:", {
+          playerId: selectedPlayer._id,
+          selectedAge,
+          ageKey,
+          url,
+        });
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error Response:", errorText);
+          throw new Error(
+            `Failed to fetch similar players: ${response.statusText}`
+          );
+        }
+
+        const data = await response.json();
+        console.log("Similar players response:", data);
+        setSimilarPlayers(data.similar || []);
+      } catch (err) {
+        console.error("Error fetching similar players:", err);
+        setSimilarPlayers([]);
+      } finally {
+        setLoadingSimilar(false);
+      }
+    };
+
+    fetchSimilarPlayers();
+  }, [selectedPlayer, selectedAge, activeAgeEntry]);
 
   return (
     <div className="app">
       <header className="hero hero--slim">
-        <p className="hero__eyebrow">Sample Experience</p>
-        <h1>A'ja Wilson Search Demo</h1>
+        <div className="hero__top">
+          <p className="hero__eyebrow">WNBA Player Database</p>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
+        </div>
+        <h1>WNBA Player Comp Finder</h1>
         <p className="hero__lead">
-          Type her name, tap the only result, and preview a fully mocked
-          scouting profile with stat families and three closest comps.
+          Type to search. Select a player to see their stored data from MongoDB.
         </p>
       </header>
 
@@ -342,179 +537,265 @@ function App() {
           <div>
             <h2>Search Players</h2>
             <p className="sidebar__hint">
-              This sample only includes A&apos;ja Wilson to show the flow.
+              Player names populate directly from your MongoDB collection.
             </p>
           </div>
-          <input
-            id="player-search"
-            type="search"
-            placeholder="Search for A'ja Wilson"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-          {filteredPlayers.length === 0 ? (
-            <p className="empty-hint">No players match that search.</p>
-          ) : (
-            <ul className="search-results">
-              {filteredPlayers.map((player) => {
-                const isActive = player.id === selectedPlayerId;
-                return (
-                  <li key={player.id}>
-                    <button
-                      type="button"
-                      className={`search-results__item${
-                        isActive ? " is-active" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedPlayerId(player.id);
-                        setSelectedAgeByPlayer((prev) => {
-                          if (prev[player.id] !== undefined) {
-                            return prev;
-                          }
-                          const defaultAge = player.ageProfiles?.[0]?.age;
-                          if (defaultAge === undefined) {
-                            return prev;
-                          }
-                          return { ...prev, [player.id]: defaultAge };
-                        });
-                      }}
-                      aria-pressed={isActive}
-                    >
-                      <span className="search-results__name">
-                        {player.name}
-                      </span>
-                      <span className="search-results__meta">
-                        {player.team} • {player.position}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+          {loading && <p className="empty-hint">Loading players...</p>}
+          {error && (
+            <div>
+              <p className="empty-hint" style={{ color: "var(--accent)" }}>
+                Error: {error}
+              </p>
+              <p
+                className="empty-hint"
+                style={{ fontSize: "0.85rem", marginTop: "8px" }}
+              >
+                Make sure the server is running: <code>npm run server</code>
+              </p>
+            </div>
           )}
+          <div className="search-dropdown">
+            <input
+              ref={searchInputRef}
+              id="player-search"
+              type="text"
+              placeholder="Search players..."
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsDropdownOpen(true);
+              }}
+              onFocus={() => {
+                setIsDropdownOpen(true);
+                if (selectedPlayer && query === (selectedPlayer.name || "")) {
+                  setQuery("");
+                }
+              }}
+              onBlur={() => setTimeout(() => setIsDropdownOpen(false), 150)}
+              className="search-input"
+              autoComplete="off"
+            />
+
+            {isDropdownOpen && (
+              <div className="dropdown-menu">
+                {filteredPlayers.length === 0 ? (
+                  <div className="dropdown-empty">No players found</div>
+                ) : (
+                  <ul className="dropdown-list">
+                    {filteredPlayers.map((player) => {
+                      return (
+                        <li key={player._id}>
+                          <button
+                            type="button"
+                            className={`dropdown-item${
+                              selectedPlayer?._id === player._id
+                                ? " is-active"
+                                : ""
+                            }`}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => handleSelect(player._id)}
+                          >
+                            <span className="dropdown-item__name">
+                              {player.name || "Unknown Player"}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            )}
+          </div>
         </aside>
 
         <section className="content">
           {selectedPlayer ? (
-            <>
-              <article className="profile panel">
-                <div className="profile__header">
+            <article className="panel">
+              <div className="player-header">
+                {getPlayerImagePath(selectedPlayer.name) && (
                   <img
-                    src={selectedPlayer.imageUrl}
-                    alt={`${selectedPlayer.name} headshot`}
-                    className="profile__photo"
+                    src={getPlayerImagePath(selectedPlayer.name)}
+                    alt={selectedPlayer.name}
+                    className="player-header__image"
+                    onError={(e) => {
+                      e.target.style.display = "none";
+                    }}
                   />
-                  <div className="profile__info">
-                    <div className="profile__meta">
-                      <span className="profile__number">
-                        #{selectedPlayer.number}
-                      </span>
-                      <span className="profile__position">
-                        {selectedPlayer.position}
-                      </span>
-                      <span>{selectedPlayer.team}</span>
-                    </div>
-                    <h2>{selectedPlayer.name}</h2>
-                    <p className="profile__bio">{selectedPlayer.bio}</p>
-                    <ul className="badge-list">
-                      <li>{selectedPlayer.height}</li>
-                      <li>{selectedPlayer.weight}</li>
-                      <li>{selectedPlayer.college}</li>
-                      <li>{selectedPlayer.yearsPro}</li>
-                    </ul>
-                    <ul className="badge-list badge-list--pills">
-                      {selectedPlayer.badges.map((badge) => (
-                        <li key={badge}>{badge}</li>
-                      ))}
-                    </ul>
-                  </div>
+                )}
+                <div className="player-header__info">
+                  <h2>{selectedPlayer.name}</h2>
+                  {playerHeaderTeam && (
+                    <p className="player-meta">{playerHeaderTeam}</p>
+                  )}
                 </div>
-                {activeProfile ? (
-                  <div className="age-control">
-                    <div className="age-control__header">
-                      <label htmlFor={`age-select-${selectedPlayer.id}`}>
-                        Season focus
-                      </label>
-                      <span className="age-control__season">
-                        Age {activeProfile.age}
-                        {activeProfile.season
-                          ? ` • ${activeProfile.season}`
-                          : ""}
-                      </span>
-                    </div>
-                    <select
-                      id={`age-select-${selectedPlayer.id}`}
-                      value={activeProfile.age}
-                      onChange={(event) => {
-                        const nextAge = Number(event.target.value);
-                        if (Number.isNaN(nextAge)) {
-                          return;
-                        }
-                        setSelectedAgeByPlayer((prev) => ({
-                          ...prev,
-                          [selectedPlayer.id]: nextAge,
-                        }));
-                      }}
-                    >
-                      {selectedPlayer.ageProfiles?.map((profile) => (
-                        <option key={profile.age} value={profile.age}>
-                          Age {profile.age}
-                          {profile.season ? ` • ${profile.season}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {activeProfile.tagline ? (
-                      <p className="age-control__note">
-                        {activeProfile.tagline}
-                      </p>
-                    ) : null}
-                  </div>
-                ) : null}
-              </article>
+              </div>
 
-              {activeProfile ? (
-                <>
-                  <section className="stat-grid">
-                    {SECTION_ORDER.map((sectionKey) => {
-                      const metadata = SECTION_METADATA[sectionKey];
-                      const rows = activeProfile.stats[sectionKey];
-
+              {availableAges.length > 0 && (
+                <div className="age-selector">
+                  <p className="age-selector__label">Age</p>
+                  <div className="age-buttons">
+                    {availableAges.map((age) => {
+                      const isActive = age.displayAge === selectedAge;
                       return (
-                        <StatGroup
-                          key={sectionKey}
-                          title={metadata.title}
-                          description={metadata.description}
-                          rows={rows}
-                        />
+                        <button
+                          key={age.uniqueKey || age.originalKey}
+                          type="button"
+                          className={`age-button${
+                            isActive ? " is-active" : ""
+                          }`}
+                          onClick={() => setSelectedAge(age.displayAge)}
+                        >
+                          <span className="age-button__label">
+                            {age.displayAge}
+                          </span>
+                          {(age.shortTeam || age.team) && (
+                            <span className="age-button__team">
+                              {age.shortTeam || age.team}
+                            </span>
+                          )}
+                        </button>
                       );
                     })}
-                  </section>
+                  </div>
+                </div>
+              )}
 
-                  <section className="panel similar">
-                    <div className="similar__header">
-                      <h2>Top Similar Players</h2>
-                      <p>
-                        Data model compares size, usage, efficiency, and
-                        defensive impact to surface these comps.
-                      </p>
+              {statSections.length > 0 && (
+                <div className="player-stats">
+                  <div className="player-stats__header">
+                    <div>
+                      <p className="player-stats__eyebrow">Season snapshot</p>
+                      <h3>
+                        Age {readableSelectedAge || "—"}
+                        {selectedAgeStats?.per_game?.Year
+                          ? ` • ${selectedAgeStats.per_game.Year}`
+                          : ""}
+                      </h3>
                     </div>
-                    <div className="similar__list">
-                      {activeProfile.similarPlayers
-                        .slice(0, 3)
-                        .map((player) => (
-                          <SimilarPlayerCard key={player.name} {...player} />
-                        ))}
+                    {badgeTeamName && (
+                      <div className="player-stats__meta">
+                        <span className="badge badge--soft">
+                          {badgeTeamName}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="stat-accordion-list">
+                    {statSections.map((section, index) => (
+                      <details
+                        key={section.id}
+                        className="panel stat-accordion"
+                        open={index === 0}
+                      >
+                        <summary className="stat-accordion__summary">
+                          <div>
+                            <h3>{section.title}</h3>
+                            <p>{section.description}</p>
+                          </div>
+                          <span
+                            className="stat-accordion__chevron"
+                            aria-hidden="true"
+                          />
+                        </summary>
+                        <div className="stat-accordion__content">
+                          <dl>
+                            {section.rows.map((row) => (
+                              <div key={row.label} className="stat-row">
+                                <dt>{row.label}</dt>
+                                <dd>{row.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {selectedPlayer && selectedAge && (
+                <section className="panel similar-template">
+                  <div className="similar-template__header">
+                    <div>
+                      <h3>Similar Players</h3>
                     </div>
-                  </section>
-                </>
-              ) : null}
-            </>
+                  </div>
+                  {loadingSimilar && (
+                    <p className="empty-hint">Loading similar players...</p>
+                  )}
+                  {!loadingSimilar && similarPlayers.length > 0 && (
+                    <div className="similar-template__grid">
+                      {similarPlayers.map((similar) => {
+                        const teamName = formatTeamName(similar.team || "");
+                        const similarImagePath = getPlayerImagePath(
+                          similar.name
+                        );
+                        return (
+                          <button
+                            key={similar.playerId}
+                            type="button"
+                            className="similar-template__card similar-template__card--clickable"
+                            onClick={() => {
+                              if (similar.playerId) {
+                                handleSelect(similar.playerId);
+                              }
+                            }}
+                          >
+                            <div className="similar-template__badge">
+                              {similar.similarity}% Match
+                            </div>
+                            {similarImagePath && (
+                              <img
+                                src={similarImagePath}
+                                alt={similar.name}
+                                className="similar-template__image"
+                                onError={(e) => {
+                                  e.target.style.display = "none";
+                                }}
+                              />
+                            )}
+                            <h4 className="similar-template__name">
+                              {similar.name || "Unknown Player"}
+                            </h4>
+                            {teamName && (
+                              <p className="similar-template__team">
+                                {teamName}
+                              </p>
+                            )}
+                            <p className="similar-template__caption">
+                              Age {similar.age}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {!loadingSimilar && similarPlayers.length === 0 && (
+                    <p className="empty-hint">
+                      No similar players found for this age.
+                    </p>
+                  )}
+                </section>
+              )}
+              {selectedAgeStats && statSections.length === 0 && (
+                <p className="empty-hint">
+                  Stats for this age exist but could not be formatted. Check the
+                  raw data structure in MongoDB.
+                </p>
+              )}
+              {!selectedAgeStats && availableAges.length === 0 && (
+                <p className="empty-hint">
+                  No stats have been stored for this player yet.
+                </p>
+              )}
+            </article>
           ) : (
             <div className="panel empty-panel">
-              <h2>Select A'ja Wilson</h2>
+              <h2>Select a Player</h2>
               <p>
-                Use the search on the left to load the full profile, stat
-                sections, and top three similar players.
+                Use the dropdown on the left to pick a player from your MongoDB
+                collection.
               </p>
             </div>
           )}
@@ -522,8 +803,8 @@ function App() {
       </main>
 
       <footer className="footer">
-        <p>© {year} WNBA Player Similarity • Sample UI</p>
-        <p className="footer__note">Fully static demo wired to one player.</p>
+        <p>© {year} WNBA Player Similarity</p>
+        <p className="footer__note">Live data from MongoDB</p>
       </footer>
     </div>
   );
