@@ -2,6 +2,131 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Prerequisites
+
+Before running this application, you need to install the following:
+
+### Required Software
+
+1. **Node.js** (v14 or higher) and **npm**
+
+   - Download from [nodejs.org](https://nodejs.org/)
+   - Verify installation: `node --version` and `npm --version`
+
+2. **Python** (v3.9 or higher)
+
+   - Download from [python.org](https://www.python.org/)
+   - Verify installation: `python3 --version`
+
+3. **MongoDB**
+   - Download from [mongodb.com](https://www.mongodb.com/try/download/community)
+   - Or use MongoDB Atlas (cloud): [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+
+### Installing Dependencies
+
+1. **Install Node.js dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+   This will install all frontend and backend dependencies including:
+
+   - React and React DOM
+   - Express.js (backend server)
+   - MongoDB driver
+   - CORS and other middleware
+
+2. **Install Python dependencies:**
+
+   ```bash
+   pip3 install beautifulsoup4 requests pymongo pandas numpy scikit-learn pillow python-dotenv
+   ```
+
+   Or create a `requirements.txt` file and install:
+
+   ```bash
+   pip3 install -r requirements.txt
+   ```
+
+3. **Set up environment variables:**
+   Create a `.env` file in the root directory:
+   ```
+   DATABASE_URL=your_mongodb_connection_string
+   ```
+
+## Web Scraping Basketball-Reference
+
+This project scrapes player statistics from [Basketball-Reference.com](https://www.basketball-reference.com/wnba/). The scraping is done using Python with the following approach:
+
+### Scraping Process
+
+1. **Player Links**: The project uses a `links.py` file containing a dictionary of player names mapped to their Basketball-Reference URLs (e.g., `"Player Name": "https://www.basketball-reference.com/wnba/players/..."`).
+
+2. **Data Extraction**: The `API.py` script:
+
+   - Uses `requests` to fetch HTML pages from Basketball-Reference
+   - Uses `BeautifulSoup` to parse HTML and extract data from HTML comments (where some tables are stored)
+   - Extracts multiple stat categories:
+     - **Per Game Stats**: Basic statistics per game
+     - **Per 100 Possessions**: Pace-adjusted statistics
+     - **Advanced Stats**: Advanced metrics (PER, TS%, etc.)
+     - **Shooting Stats**: Shooting percentages by distance
+     - **Play-by-Play Stats**: On/off court statistics
+   - Uses `pandas` to convert HTML tables to DataFrames for easier processing
+   - Organizes stats by player age (season)
+
+3. **Data Storage**:
+
+   - Player statistics are stored in MongoDB with age as keys
+   - Each age contains nested stat categories (per_game, advanced, etc.)
+   - The script checks if a player already exists before inserting to avoid duplicates
+
+4. **Image Scraping**:
+   - The `transparent.py` script downloads player headshots from Basketball-Reference
+   - Extracts player IDs from URLs in `player_links`
+   - Downloads images and processes them to make backgrounds transparent
+   - Saves processed images to `API/Image/` directory
+
+### Important Notes
+
+- The scraping script includes:
+
+  - **Rate limiting**: 10-second delays between insertions to be respectful to the server
+  - **User-Agent rotation**: Random user agents to avoid being blocked
+  - **Error handling**: Checks for existing players and handles missing data gracefully
+
+- **Ethical Scraping**: Always respect website terms of service and robots.txt. Consider using official APIs when available.
+
+## Running the Application
+
+This application requires both the frontend React app and the backend server to be running simultaneously.
+
+### Start the Backend Server
+
+First, start the backend server:
+
+```bash
+npm run server
+```
+
+The server will run on port 5002 by default and connect to your MongoDB database. Make sure you have:
+
+- MongoDB running and accessible
+- A `.env` file with your `DATABASE_URL` configured
+
+### Start the Frontend
+
+In a separate terminal, start the React development server:
+
+```bash
+npm start
+```
+
+The app will open at [http://localhost:3000](http://localhost:3000) and will automatically connect to the backend server running on port 5002.
+
+**Note:** Both servers must be running for the application to work properly. The frontend will display an error if it cannot connect to the backend server.
+
 ## Available Scripts
 
 In the project directory, you can run:
