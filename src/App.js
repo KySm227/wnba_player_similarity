@@ -526,7 +526,10 @@ function App() {
             {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
           </button>
         </div>
-        <h1>WNBA Player Comp Finder</h1>
+        <div className="hero__title-container">
+          <img src="/WNBA.png" alt="WNBA Logo" className="hero__logo" />
+          <h1>WNBA Player Comp Finder</h1>
+        </div>
         <p className="hero__lead">
           Type to search. Select a player to see their stored data from MongoDB.
         </p>

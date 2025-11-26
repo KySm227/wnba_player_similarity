@@ -108,6 +108,28 @@ img {
   gap: 10px;
 }
 
+.hero__title-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.hero--slim .hero__title-container {
+  justify-content: flex-start;
+}
+
+.hero__logo {
+  width: clamp(60px, 10vw, 100px);
+  height: clamp(60px, 10vw, 100px);
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  mix-blend-mode: normal;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
 .hero__eyebrow {
   margin: 0;
   text-transform: uppercase;
