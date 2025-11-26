@@ -108,26 +108,8 @@ img {
   gap: 10px;
 }
 
-.hero__title-container {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  justify-content: center;
-}
-
 .hero--slim .hero__title-container {
   justify-content: flex-start;
-}
-
-.hero__logo {
-  width: clamp(60px, 10vw, 100px);
-  height: clamp(60px, 10vw, 100px);
-  object-fit: contain;
-  flex-shrink: 0;
-  display: block;
-  mix-blend-mode: normal;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
 }
 
 .hero__eyebrow {
@@ -136,6 +118,25 @@ img {
   letter-spacing: 0.18em;
   font-size: 0.78rem;
   color: var(--text-soft);
+}
+
+.hero__title-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.hero__logo {
+  width: clamp(60px, 10vw, 100px);
+  height: clamp(60px, 10vw, 100px);
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+  /* Ensure transparency is preserved */
+  mix-blend-mode: normal;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .hero h1 {
@@ -561,6 +562,18 @@ img {
   margin: 0;
   font-weight: 600;
   color: var(--text);
+}
+
+.similar-template__team {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 999px;
+  display: inline-block;
+  border: 1px solid;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .similar-template__caption {

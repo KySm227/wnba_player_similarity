@@ -93,6 +93,98 @@ const TEAM_NAME_MAP = {
   UTA: "Utah Starzz",
 };
 
+// Team color mapping (primary color, secondary color)
+const TEAM_COLORS = {
+  LAS: { primary: "#562885", secondary: "#fcba1e" },
+  SAC: { primary: "#283745", secondary: "#283745" },
+  DET: { primary: "#006cb8", secondary: "#ed154c" },
+  MIN: { primary: "#1e6194", secondary: "#78bf1b" },
+  ATL: { primary: "#e3103a", secondary: "#4693cf" },
+  DAL: { primary: "#c7d902", secondary: "#05abe3" },
+  CHI: { primary: "#ffd61f", secondary: "#4e91cc" },
+  CON: { primary: "#f04e22", secondary: "#092340" },
+  GSV: { primary: "#000000", secondary: "#b796d4" },
+  IND: { primary: "#e03a3d", secondary: "#002d63" },
+  SEA: { primary: "#2c5236", secondary: "#ffe11c" },
+  NYL: { primary: "#86cfbc", secondary: "#000000" },
+  PHO: { primary: "#e65f20", secondary: "#3c296e" },
+  LVA: { primary: "#a7a9ab", secondary: "#000000" },
+  WAS: { primary: "#002b5c", secondary: "#e03a3d" },
+  CHA: { primary: "#268b96", secondary: "#34094d" },
+  SAS: { primary: "#29251f", secondary: "#8d8f8f" },
+  CLE: { primary: "#02b0f0", secondary: "#c5cfd6" },
+  HOU: { primary: "#cf0c40", secondary: "#00265e" },
+  MIA: { primary: "#bf323b", secondary: "#f59f36" },
+  ORL: { primary: "#c2cccf", secondary: "#1b7db5" },
+  POR: { primary: "#cc1b23", secondary: "#3d3230" },
+  TUL: { primary: "#c40a2c", secondary: "#fcba2b" },
+  UTA: { primary: "#00ace0", secondary: "#773bbf" },
+};
+
+// Helper function to get team abbreviation from team name
+const getTeamAbbreviation = (teamName) => {
+  if (!teamName || typeof teamName !== "string") {
+    return null;
+  }
+  const upper = teamName.toUpperCase().trim();
+  // Check if it's already an abbreviation
+  if (TEAM_COLORS[upper]) {
+    return upper;
+  }
+  // Find abbreviation from full name
+  for (const [abbr, fullName] of Object.entries(TEAM_NAME_MAP)) {
+    if (fullName.toUpperCase() === upper) {
+      return abbr;
+    }
+  }
+  return null;
+};
+
+// Helper function to get team colors with theme-aware styling
+const getTeamBadgeStyles = (teamName, theme) => {
+  const abbr = getTeamAbbreviation(teamName);
+  if (!abbr || !TEAM_COLORS[abbr]) {
+    return null; // Return null to use default styling
+  }
+
+  const colors = TEAM_COLORS[abbr];
+  const isDark = theme === "dark";
+
+  // Convert hex to RGB for opacity
+  const hexToRgb = (hex) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? {
+          r: Number.parseInt(result[1], 16),
+          g: Number.parseInt(result[2], 16),
+          b: Number.parseInt(result[3], 16),
+        }
+      : null;
+  };
+
+  const rgb = hexToRgb(colors.primary);
+  if (!rgb) return null;
+
+  // Adjust opacity and colors for theme
+  if (isDark) {
+    return {
+      background: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.2)`,
+      color: colors.primary,
+      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.5)`,
+    };
+  } else {
+    // Light mode: use slightly higher opacity and adjust text color for contrast
+    const luminance = (0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b) / 255;
+    const textColor = luminance > 0.5 ? "#1a1a1a" : colors.primary;
+
+    return {
+      background: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`,
+      color: textColor,
+      borderColor: `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`,
+    };
+  }
+};
+
 const formatTeamName = (value) => {
   if (!value || typeof value !== "string") {
     return "";
@@ -678,7 +770,10 @@ function App() {
                     </div>
                     {badgeTeamName && (
                       <div className="player-stats__meta">
-                        <span className="badge badge--soft">
+                        <span
+                          className="badge badge--soft"
+                          style={getTeamBadgeStyles(badgeTeamName, theme) || {}}
+                        >
                           {badgeTeamName}
                         </span>
                       </div>
@@ -762,7 +857,12 @@ function App() {
                               {similar.name || "Unknown Player"}
                             </h4>
                             {teamName && (
-                              <p className="similar-template__team">
+                              <p
+                                className="similar-template__team"
+                                style={
+                                  getTeamBadgeStyles(teamName, theme) || {}
+                                }
+                              >
                                 {teamName}
                               </p>
                             )}
