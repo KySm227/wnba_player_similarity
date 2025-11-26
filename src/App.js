@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 // API URL - matches server port
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5002/api";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001/api";
 
 const SECTION_CONFIG = [
   {

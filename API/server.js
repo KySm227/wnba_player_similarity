@@ -7,7 +7,7 @@ const { getSimilarPlayers } = require("./similarity");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 5002;
+const PORT = 5001;
 
 app.use(cors());
 app.use(express.json());
@@ -21,7 +21,9 @@ try {
   const mapPath = path.join(__dirname, "player_image_map.json");
   if (fs.existsSync(mapPath)) {
     playerImageMap = JSON.parse(fs.readFileSync(mapPath, "utf8"));
-    console.log(`Loaded ${Object.keys(playerImageMap).length} player image mappings`);
+    console.log(
+      `Loaded ${Object.keys(playerImageMap).length} player image mappings`
+    );
   }
 } catch (error) {
   console.error("Error loading player image map:", error);
@@ -36,28 +38,28 @@ function getPlayerImageFilename(playerName) {
 app.get("/api/players/:name/image", async (req, res) => {
   try {
     const { name } = req.params;
-    
+
     // Find the player in MongoDB to get exact name match
     const player = await playersCollection.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
     });
-    
+
     if (!player) {
       return res.status(404).json({ error: "Player not found" });
     }
-    
+
     // Get image filename from mapping
     const imageFilename = getPlayerImageFilename(player.name);
-    
+
     if (!imageFilename) {
       return res.status(404).json({ error: "Image not found for this player" });
     }
-    
+
     // Return the image path (relative to /api/images)
-    res.json({ 
+    res.json({
       imagePath: `/api/images/${imageFilename}`,
       imageFilename: imageFilename,
-      playerName: player.name 
+      playerName: player.name,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

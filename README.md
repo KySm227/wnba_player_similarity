@@ -110,7 +110,7 @@ First, start the backend server:
 npm run server
 ```
 
-The server will run on port 5002 by default and connect to your MongoDB database. Make sure you have:
+The server will run on port 5001 by default and connect to your MongoDB database. Make sure you have:
 
 - MongoDB running and accessible
 - A `.env` file with your `DATABASE_URL` configured
@@ -123,7 +123,7 @@ In a separate terminal, start the React development server:
 npm start
 ```
 
-The app will open at [http://localhost:3000](http://localhost:3000) and will automatically connect to the backend server running on port 5002.
+The app will open at [http://localhost:3000](http://localhost:3000) and will automatically connect to the backend server running on port 5001.
 
 **Note:** Both servers must be running for the application to work properly. The frontend will display an error if it cannot connect to the backend server.
 
