@@ -1,0 +1,35 @@
+<svg width="200" height="240" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Orange background with rounded corners -->
+  <rect x="0" y="0" width="200" height="240" rx="12" ry="12" fill="#FF6900"/>
+  
+  <!-- White basketball player silhouette -->
+  <!-- Head -->
+  <ellipse cx="100" cy="50" rx="12" ry="14" fill="white"/>
+  
+  <!-- Body/Torso -->
+  <path d="M 85 65 Q 85 75 90 85 L 90 120 Q 90 130 100 130 Q 110 130 110 120 L 110 85 Q 115 75 115 65 Z" fill="white"/>
+  
+  <!-- Left arm (extended upward with basketball) -->
+  <ellipse cx="75" cy="35" rx="8" ry="25" fill="white" transform="rotate(-20 75 35)"/>
+  <!-- Basketball in left hand -->
+  <circle cx="70" cy="15" r="8" fill="white"/>
+  <path d="M 65 15 Q 70 12 75 15 Q 70 18 65 15" stroke="#FF6900" stroke-width="1" fill="none"/>
+  <path d="M 70 10 Q 70 15 70 20" stroke="#FF6900" stroke-width="1" fill="none"/>
+  
+  <!-- Right arm (bent) -->
+  <ellipse cx="125" cy="70" rx="8" ry="20" fill="white" transform="rotate(45 125 70)"/>
+  
+  <!-- Left leg (trailing) -->
+  <ellipse cx="95" cy="140" rx="10" ry="45" fill="white" transform="rotate(-15 95 140)"/>
+  <ellipse cx="95" cy="185" rx="12" ry="8" fill="white"/>
+  
+  <!-- Right leg (leading) -->
+  <ellipse cx="105" cy="135" rx="10" ry="50" fill="white" transform="rotate(10 105 135)"/>
+  <ellipse cx="108" cy="185" rx="12" ry="8" fill="white"/>
+  
+  <!-- Additional details for player silhouette -->
+  <!-- Shoulder area -->
+  <ellipse cx="85" cy="70" rx="6" ry="8" fill="white"/>
+  <ellipse cx="115" cy="70" rx="6" ry="8" fill="white"/>
+</svg>
+
