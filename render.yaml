@@ -19,7 +19,6 @@ services:
     envVars:
       - key: REACT_APP_API_URL
         sync: false
-        value: https://wnba-player-similarity-backend.onrender.com/api
+        value: https://wnbaedge.onrender.com
       - key: NODE_ENV
         value: production
-
