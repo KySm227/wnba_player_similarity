@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: wnba-player-similarity-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node API/server.js
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /api/test
+
