@@ -34,6 +34,11 @@ function getPlayerImageFilename(playerName) {
   return playerImageMap[playerName] || null;
 }
 
+// Root route
+app.get("/", (req, res) => {
+  res.json({ message: "WNBA Player Similarity API Server", status: "running" });
+});
+
 // Get player image by name
 app.get("/api/players/:name/image", async (req, res) => {
   try {
