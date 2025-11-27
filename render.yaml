@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: wnbaedge
+    name: wnbaedge-backend
     env: node
     buildCommand: npm install
-    startCommand: npm run server
+    startCommand: node API/server.js
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -12,13 +12,13 @@ services:
     healthCheckPath: /api/test
 
   - type: web
-    name: wnbaedge
+    name: wnbaedge-frontend
     env: node
     buildCommand: npm install && npm run build
-    startCommand: npm run frontend
+    startCommand: node server-frontend.js
     envVars:
       - key: REACT_APP_API_URL
         sync: false
-        value: https://wnbaedge.onrender.com
+        value: https://wnbaedge.onrender.com/api
       - key: NODE_ENV
         value: production
