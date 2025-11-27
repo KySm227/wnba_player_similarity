@@ -11,3 +11,15 @@ services:
         value: production
     healthCheckPath: /api/test
 
+  - type: web
+    name: wnba-player-similarity-frontend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: node server-frontend.js
+    envVars:
+      - key: REACT_APP_API_URL
+        sync: false
+        value: https://wnba-player-similarity-backend.onrender.com/api
+      - key: NODE_ENV
+        value: production
+

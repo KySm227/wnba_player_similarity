@@ -7,7 +7,7 @@ const { getSimilarPlayers } = require("./similarity");
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT2 || 5001;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());

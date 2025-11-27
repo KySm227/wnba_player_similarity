@@ -383,7 +383,7 @@ function App() {
         // Provide more helpful error message
         if (err.message === "Failed to fetch" || err.name === "TypeError") {
           setError(
-            "Cannot connect to server. Make sure the backend server is running on port 5002. Run: npm run server"
+            "Cannot connect to server. Make sure the backend server is running on port 5001. Run: npm run server"
           );
         } else {
           setError(err.message);
