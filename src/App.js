@@ -623,7 +623,8 @@ function App() {
           <h1>WNBA Player Comp Finder</h1>
         </div>
         <p className="hero__lead">
-          Type to search. Select a player to see their stored data from MongoDB.
+          Type to search. Select a player to see their stored data and player
+          comparisons
         </p>
       </header>
 
@@ -631,9 +632,6 @@ function App() {
         <aside className="sidebar panel">
           <div>
             <h2>Search Players</h2>
-            <p className="sidebar__hint">
-              Player names populate directly from your MongoDB collection.
-            </p>
           </div>
           {loading && <p className="empty-hint">Loading players...</p>}
           {error && (
