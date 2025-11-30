@@ -895,8 +895,8 @@ function App() {
             <div className="panel empty-panel">
               <h2>Select a Player</h2>
               <p>
-                Use the dropdown on the left to pick a player from your MongoDB
-                collection.
+                Use the dropdown on the left to pick a player to see their
+                stored data and player comparisons
               </p>
             </div>
           )}
@@ -905,7 +905,7 @@ function App() {
 
       <footer className="footer">
         <p>© {year} WNBA Player Similarity</p>
-        <p className="footer__note">Live data from MongoDB</p>
+        <p className="footer__note">Live data from Render</p>
       </footer>
     </div>
   );
