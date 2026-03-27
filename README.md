@@ -1,195 +1,279 @@
-# Getting Started with Create React App
+# WNBA Player Similarity
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A tool to find WNBA players similar to a given player based on historical statistics and/or learned embeddings. This project includes a Python backend for data processing and similarity computation and a JavaScript frontend for an interactive UI. The app is hosted on Render and stores processed player data in MongoDB.
 
-## Prerequisites
+## Live demo
+Hosted on Render — replace the placeholder with your render URL:
+[https://<your-render-service>.onrender.com](https://wnbaedges.onrender.com/)
 
-Before running this application, you need to install the following:
+## Features
+- Compute player similarity using configurable features or learned embeddings
+- Interactive UI to search players and view the top-N similar players
+- API endpoints for programmatic queries
+- Scripts to preprocess WNBA data and update similarity indices
+- MongoDB for persistent storage of raw/processed player data and indices
+- Deployed to Render for zero-downtime hosting
 
-### Required Software
+## Tech stack
+- Python (backend, data processing) — ~64%
+- JavaScript (frontend) — ~26%
+- MongoDB (data storage)
+- CSS, HTML for styling and layout
+- Typical libraries: pandas, scikit-learn, numpy, pymongo/motor, fastapi/flask, uvicorn/gunicorn (backend); React/Vue/vanilla JS (frontend)
 
-1. **Node.js** (v14 or higher) and **npm**
+## Quickstart
 
-   - Download from [nodejs.org](https://nodejs.org/)
-   - Verify installation: `node --version` and `npm --version`
+Prerequisites
+- Python 3.9+
+- Node.js 16+ (if there's a separate frontend)
+- pip, npm
+- Git
+- MongoDB instance (local mongod or MongoDB Atlas)
 
-2. **Python** (v3.9 or higher)
+Option A — Single Python app (e.g., FastAPI / Streamlit / Flask)
+1. Clone the repo
+   git clone https://github.com/KySm227/wnba_player_similarity.git
+   cd wnba_player_similarity
+2. Create and activate a virtual environment
+   python -m venv .venv
+   source .venv/bin/activate  # macOS/Linux
+   .venv\Scripts\activate     # Windows
+3. Install dependencies
+   pip install -r requirements.txt
+4. Configure environment variables (example `.env`):
+   MONGODB_URI="mongodb+srv://<user>:<pass>@cluster0.mongodb.net/wnba?retryWrites=true&w=majority"
+   SECRET_KEY="replace-with-secret"
+   PORT=8000
+   (Use a local URI for local development: mongodb://localhost:27017/wnba)
+5. Run the app
+   # FastAPI example
+   uvicorn app.main:app --reload --port 8000
+   # Streamlit example
+   streamlit run app.py
+6. Open http://localhost:8000 (or the port your app uses)
 
-   - Download from [python.org](https://www.python.org/)
-   - Verify installation: `python3 --version`
+Option B — Python backend + JavaScript frontend
+1. Backend
+   cd backend
+   python -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   uvicorn main:app --reload --port 8000
+2. Frontend
+   cd frontend
+   npm ci
+   npm run start
+3. Visit the frontend URL (usually http://localhost:3000) and ensure it calls the backend API.
 
-3. **MongoDB**
-   - Download from [mongodb.com](https://www.mongodb.com/try/download/community)
-   - Or use MongoDB Atlas (cloud): [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+## MongoDB — Usage & Setup
 
-### Installing Dependencies
+Where data is stored
+- MongoDB stores raw player data, processed stat vectors/embeddings, similarity indices, and optionally metadata (timestamps, source).
+- Collections suggested:
+  - players (one doc per player with metadata)
+  - season_stats (season-level stats per player)
+  - embeddings (precomputed embeddings or vectors)
+  - similarity_cache (cached top-N results)
 
-1. **Install Node.js dependencies:**
+Connection
+- Use a single environment variable for your connection string: MONGODB_URI.
+- Example connection strings:
+  - Local: mongodb://localhost:27017/wnba
+  - Atlas: mongodb+srv://<username>:<password>@cluster0.xyz.mongodb.net/wnba?retryWrites=true&w=majority
 
-   ```bash
-   npm install
-   ```
+Python example (pymongo):
+```python
+from pymongo import MongoClient
+import os
 
-   This will install all frontend and backend dependencies including:
-
-   - React and React DOM
-   - Express.js (backend server)
-   - MongoDB driver
-   - CORS and other middleware
-
-2. **Install Python dependencies:**
-
-   ```bash
-   pip3 install beautifulsoup4 requests pymongo pandas numpy scikit-learn pillow python-dotenv
-   ```
-
-   Or create a `requirements.txt` file and install:
-
-   ```bash
-   pip3 install -r requirements.txt
-   ```
-
-3. **Set up environment variables:**
-   Create a `.env` file in the root directory:
-   ```
-   DATABASE_URL=your_mongodb_connection_string
-   ```
-
-## Web Scraping Basketball-Reference
-
-This project scrapes player statistics from [Basketball-Reference.com](https://www.basketball-reference.com/wnba/). The scraping is done using Python with the following approach:
-
-### Scraping Process
-
-1. **Player Links**: The project uses a `links.py` file containing a dictionary of player names mapped to their Basketball-Reference URLs (e.g., `"Player Name": "https://www.basketball-reference.com/wnba/players/..."`).
-
-2. **Data Extraction**: The `API.py` script:
-
-   - Uses `requests` to fetch HTML pages from Basketball-Reference
-   - Uses `BeautifulSoup` to parse HTML and extract data from HTML comments (where some tables are stored)
-   - Extracts multiple stat categories:
-     - **Per Game Stats**: Basic statistics per game
-     - **Per 100 Possessions**: Pace-adjusted statistics
-     - **Advanced Stats**: Advanced metrics (PER, TS%, etc.)
-     - **Shooting Stats**: Shooting percentages by distance
-     - **Play-by-Play Stats**: On/off court statistics
-   - Uses `pandas` to convert HTML tables to DataFrames for easier processing
-   - Organizes stats by player age (season)
-
-3. **Data Storage**:
-
-   - Player statistics are stored in MongoDB with age as keys
-   - Each age contains nested stat categories (per_game, advanced, etc.)
-   - The script checks if a player already exists before inserting to avoid duplicates
-
-4. **Image Scraping**:
-   - The `transparent.py` script downloads player headshots from Basketball-Reference
-   - Extracts player IDs from URLs in `player_links`
-   - Downloads images and processes them to make backgrounds transparent
-   - Saves processed images to `API/Image/` directory
-
-### Important Notes
-
-- The scraping script includes:
-
-  - **Rate limiting**: 10-second delays between insertions to be respectful to the server
-  - **User-Agent rotation**: Random user agents to avoid being blocked
-  - **Error handling**: Checks for existing players and handles missing data gracefully
-
-- **Ethical Scraping**: Always respect website terms of service and robots.txt. Consider using official APIs when available.
-
-## Running the Application
-
-This application requires both the frontend React app and the backend server to be running simultaneously.
-
-### Start the Backend Server
-
-First, start the backend server:
-
-```bash
-npm run server
+uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/wnba")
+client = MongoClient(uri)
+db = client.get_default_database()  # or client["wnba"]
+players = db["players"]
+# find example
+player = players.find_one({"name": "A'ja Wilson"})
 ```
 
-The server will run on port 5001 by default and connect to your MongoDB database. Make sure you have:
+Async example (motor + FastAPI):
+```python
+from motor.motor_asyncio import AsyncIOMotorClient
+import os
 
-- MongoDB running and accessible
-- A `.env` file with your `DATABASE_URL` configured
-
-### Start the Frontend
-
-In a separate terminal, start the React development server:
-
-```bash
-npm start
+client = AsyncIOMotorClient(os.getenv("MONGODB_URI"))
+db = client.get_default_database()
 ```
 
-The app will open at [http://localhost:3000](http://localhost:3000) and will automatically connect to the backend server running on port 5001.
+Seeding data
+- Provide a script (e.g., scripts/seed_db.py) that:
+  - Reads CSVs or raw data in `data/`
+  - Normalizes features and computes embeddings/stat vectors
+  - Inserts documents into the collections above
+- Example CLI:
+  python scripts/seed_db.py --source data/wnba_players.csv --drop-existing
 
-**Note:** Both servers must be running for the application to work properly. The frontend will display an error if it cannot connect to the backend server.
+Indexes & performance
+- Create indexes on frequently queried fields:
+  - players: { name: 1 } (unique), { player_id: 1 }
+  - embeddings: if using approximate search, maintain appropriate indexes
+  - similarity_cache: { player_id: 1 }
+- Consider embedding vectors stored in a vector DB or use approximate nearest neighbors libraries (FAISS, Annoy) for faster similarity. You can store precomputed neighbors in MongoDB if real-time performance is needed.
 
-## Available Scripts
+Backups & hosting
+- For production use, prefer MongoDB Atlas or a managed cluster and enable automated backups and monitoring.
+- Keep sensitive credentials out of the repository; use Render environment variables or a secrets manager.
 
-In the project directory, you can run:
+## Example API usage
+Assuming the backend exposes an endpoint like `/api/similar` which queries MongoDB-based indices:
 
-### `npm start`
+Get top 5 similar players to "A'ja Wilson":
+curl -G "http://localhost:8000/api/similar" --data-urlencode "player=A'ja Wilson" --data-urlencode "n=5"
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Example JSON response:
+{
+  "player": "A'ja Wilson",
+  "similar": [
+    {"name": "Player A", "score": 0.93},
+    {"name": "Player B", "score": 0.91}
+  ]
+}
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Data
+- Keep raw and processed data in a `data/` directory (e.g., `data/wnba_players.csv`, `data/season_stats.csv`).
+- Add a `scripts/seed_db.py` to import the CSVs and write them into MongoDB.
+- Document data sources (WNBA stats API, Basketball-Reference, Kaggle) in `data/README.md`.
 
-### `npm test`
+## Similarity methodology
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### How cosine similarity works
 
-### `npm run build`
+Each player is represented as a numeric vector of their season statistics (e.g., points, rebounds, assists, steals, blocks, field goal percentage, minutes per game). To compare two players, the app computes the **cosine similarity** between their stat vectors.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Cosine similarity measures the angle between two vectors rather than their absolute magnitude, which means two players can be rated as highly similar even if one averages more minutes per game — what matters is the *shape* of their statistical profile, not raw volume. The score ranges from **-1** (opposite profiles) to **1** (identical profiles); in practice, all stat values are non-negative so scores fall between **0** and **1**.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+cosine_similarity(A, B) = (A · B) / (||A|| × ||B||)
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+A score of **1.0** means the players have a perfectly proportional statistical profile. A score of **0.0** means their profiles share no meaningful overlap.
 
-### `npm run eject`
+### Implementation
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Stat vectors are normalized with `StandardScaler` before similarity is computed, so no single stat (e.g., points) dominates the result.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```python
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics.pairwise import cosine_similarity
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# --- Build stat matrix ---
+# Each row is one player, each column is one stat feature.
+features = ["pts", "reb", "ast", "stl", "blk", "fg_pct", "min"]
+stat_matrix = df[features].values          # shape: (n_players, n_features)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+scaler = StandardScaler()
+stat_matrix_scaled = scaler.fit_transform(stat_matrix)
 
-## Learn More
+# --- Compute all pairwise cosine similarities ---
+similarity_matrix = cosine_similarity(stat_matrix_scaled)
+# similarity_matrix[i][j] is the score between player i and player j
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+# --- Look up the top-N most similar players for a given player ---
+def get_similar_players(player_name: str, player_names: list, top_n: int = 5):
+    idx = player_names.index(player_name)
+    scores = similarity_matrix[idx]
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+    # Sort descending; exclude the player themselves (index idx)
+    ranked = sorted(
+        [(player_names[j], round(float(scores[j]), 4)) for j in range(len(scores)) if j != idx],
+        key=lambda x: x[1],
+        reverse=True,
+    )
+    return ranked[:top_n]
 
-### Code Splitting
+# Example
+results = get_similar_players("A'ja Wilson", player_names=df["name"].tolist(), top_n=5)
+# [("Breanna Stewart", 0.9721), ("Jonquel Jones", 0.9589), ...]
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Precomputing and caching similarity scores
 
-### Analyzing the Bundle Size
+Because the full pairwise matrix is computed offline and stored in MongoDB, the API returns results in O(1) time per query.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```python
+from pymongo import MongoClient
+import os
 
-### Making a Progressive Web App
+client = MongoClient(os.getenv("MONGODB_URI"))
+db = client.get_default_database()
+cache = db["similarity_cache"]
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+# Seed the cache after building the similarity matrix
+def seed_similarity_cache(player_names, similarity_matrix, top_n=10):
+    docs = []
+    for i, name in enumerate(player_names):
+        scores = similarity_matrix[i]
+        top = sorted(
+            [{"name": player_names[j], "score": round(float(scores[j]), 4)}
+             for j in range(len(scores)) if j != i],
+            key=lambda x: x["score"],
+            reverse=True,
+        )[:top_n]
+        docs.append({"player": name, "similar": top})
 
-### Advanced Configuration
+    cache.delete_many({})          # drop stale data
+    cache.insert_many(docs)
+    print(f"Cached similarity scores for {len(docs)} players.")
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+# Query the cache at request time
+def get_similar_from_cache(player_name: str, top_n: int = 5):
+    doc = cache.find_one({"player": player_name})
+    if not doc:
+        return []
+    return doc["similar"][:top_n]
+```
 
-### Deployment
+### Feature selection & tuning
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+| Feature | Notes |
+|---|---|
+| `pts`, `reb`, `ast`, `stl`, `blk` | Core counting stats; always included |
+| `fg_pct`, `3p_pct`, `ft_pct` | Efficiency metrics; can be weighted higher |
+| `min` | Controls for playing time; normalize before use |
+| `tov`, `pf` | Negative-impact stats; include with care |
 
-### `npm run build` fails to minify
+- **Adding features:** extend the `features` list and re-run `scripts/seed_db.py` to recompute and re-cache.
+- **Weighting:** multiply individual feature columns by a weight factor before scaling if you want certain stats to carry more influence.
+- **Alternative measures:** Euclidean distance or Pearson correlation can be substituted; cosine similarity is the default because it is scale-invariant.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Render deployment notes
+To deploy on Render:
+1. Create a new Web Service in Render and connect your GitHub repo.
+2. Set environment variables on Render (very important):
+   - MONGODB_URI (your connection string)
+   - SECRET_KEY (if used)
+   - Any API keys or config toggles
+3. Build and start commands (examples):
+   - Python (FastAPI): Build Command: `pip install -r requirements.txt`
+     Start Command: `gunicorn app.main:app -b 0.0.0.0:$PORT -w 4`
+   - Python + frontend: Build Command:
+     cd frontend && npm ci && npm run build && cd ..
+     pip install -r requirements.txt
+     Start Command: `gunicorn app.main:app -b 0.0.0.0:$PORT`
+4. If your MongoDB instance (Atlas) restricts IPs, ensure Render's outbound IPs or VPC peering are allowed or use a private networking option.
+5. Avoid committing MONGODB_URI to the repository — keep it in Render's environment settings.
+
+## Development
+- Run tests: pytest (add tests in `tests/`)
+- Linting/formatting: flake8 / black for Python, eslint / prettier for JS
+- Local environment variables: use `.env` and load with python-dotenv (do not commit .env)
+- Example local .env:
+  MONGODB_URI="mongodb://localhost:27017/wnba"
+  SECRET_KEY="dev-secret"
+
+## Contributing
+- Open an issue to discuss major changes.
+- Create feature branches off `main` and open pull requests.
+- Follow the code style and ensure tests pass before requesting review.
+
+## Contact
+Maintainer: KySm227 (https://github.com/KySm227)
